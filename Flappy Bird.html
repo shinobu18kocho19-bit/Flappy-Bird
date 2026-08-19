@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flappy Bird</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: "Trebuchet MS", Arial, sans-serif;
+    background: #0f0c20;
+}
+
+#game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+.screen {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background:
+        radial-gradient(circle at 50% 25%,
+        rgba(255,255,255,.25),
+        transparent 45%),
+        linear-gradient(
+            180deg,
+            rgba(25, 15, 45, .65),
+            rgba(120, 60, 160, .65)
+        );
+    backdrop-filter: blur(6px);
+}
+
+.hidden {
+    display: none !important;
+}
+
+.logoContainer {
+    width: 130px;
+    height: 130px;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 10px 22px rgba(255, 120, 220, 0.5));
+    animation: float 2.6s ease-in-out infinite;
+}
+
+.title {
+    font-size: 48px;
+    font-weight: 900;
+    color: white;
+    letter-spacing: 1px;
+    text-shadow:
+        0 4px 0 #9245d8,
+        0 8px 20px rgba(80,30,120,.5);
+}
+
+.subtitle {
+    margin-top: 10px;
+    margin-bottom: 28px;
+    color: #ffd6f6;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+button {
+    border: 0;
+    padding: 16px 52px;
+    border-radius: 999px;
+    color: white;
+    font-size: 22px;
+    font-weight: 900;
+    cursor: pointer;
+    background:
+        linear-gradient(
+            135deg,
+            #ff7ed0,
+            #a26bff
+        );
+    box-shadow:
+        0 7px 0 #7234b3,
+        0 14px 30px rgba(110,40,180,.4);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+button:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow:
+        0 10px 0 #7234b3,
+        0 18px 35px rgba(110,40,180,.45);
+}
+
+button:active {
+    transform: translateY(3px);
+    box-shadow: 0 3px 0 #7234b3;
+}
+
+#scoreContainer {
+    position: absolute;
+    z-index: 5;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: none;
+}
+
+#score {
+    color: white;
+    font-size: 60px;
+    font-weight: 900;
+    text-shadow:
+        0 4px 0 #8c42c9,
+        0 8px 20px rgba(0,0,0,0.5);
+}
+
+#themeBanner {
+    color: #ffe8fd;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 3px 12px rgba(0,0,0,0.7);
+    opacity: 0;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    transform: translateY(-10px);
+}
+
+#themeBanner.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.gameOverTitle {
+    font-size: 50px;
+    font-weight: 900;
+    color: white;
+    text-shadow:
+        0 4px 0 #d84592,
+        0 8px 20px rgba(90,20,60,.4);
+    margin-bottom: 15px;
+}
+
+.scoreText {
+    color: white;
+    font-size: 26px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.bestText {
+    color: #ffd6f6;
+    font-size: 19px;
+    margin-bottom: 26px;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) rotate(-3deg);
+    }
+    50% {
+        transform: translateY(-14px) rotate(3deg);
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+    <canvas id="canvas"></canvas>
+    
+    <div id="scoreContainer">
+        <div id="score">0</div>
+        <div id="themeBanner">ENCHANTED BLOSSOMS</div>
+    </div>
+
+    <div id="startScreen" class="screen">
+        <div class="logoContainer">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Pretty Standalone Crowned Bird (No Bubble) -->
+                <path d="M15 50 C15 28, 42 22, 62 38 C78 22, 92 38, 85 60 C75 82, 45 82, 15 50 Z" fill="url(#prettyBirdGrad)"/>
+                <!-- Wing -->
+                <path d="M25 52 C32 66, 52 64, 58 50 C48 48, 35 48, 25 52 Z" fill="url(#wingGrad)" stroke="#c58cff" stroke-width="2"/>
+                <!-- Eye -->
+                <circle cx="68" cy="42" r="7.5" fill="white"/>
+                <circle cx="70" cy="42" r="4" fill="#3b1f48"/>
+                <circle cx="72" cy="40" r="1.8" fill="white"/>
+                <circle cx="68" cy="44" r="1" fill="white"/>
+                <!-- Cheerful Blush -->
+                <ellipse cx="60" cy="52" rx="5" ry="3" fill="#ff79bd" opacity="0.75"/>
+                <!-- Beak -->
+                <path d="M78 48 L94 54 L78 62 Z" fill="#ffcf70"/>
+                <!-- Royal Crown -->
+                <path d="M42 22 L48 8 L55 20 L63 10 L65 24 Z" fill="#ffd95a"/>
+                <circle cx="54" cy="17" r="2.5" fill="#ff79bd"/>
+                <!-- Floating Magic Sparkles -->
+                <path d="M18 22 L20 16 L22 22 L28 24 L22 26 L20 32 L18 26 L12 24 Z" fill="#fff" opacity="0.9"/>
+                <path d="M78 20 L79 16 L80 20 L84 21 L80 22 L79 26 L78 22 L74 21 Z" fill="#ffd95a" opacity="0.9"/>
+                <defs>
+                    <linearGradient id="prettyBirdGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ffffff"/>
+                        <stop offset="40%" stop-color="#ffb3ec"/>
+                        <stop offset="100%" stop-color="#b86bff"/>
+                    </linearGradient>
+                    <linearGradient id="wingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ffe6f9"/>
+                        <stop offset="100%" stop-color="#e084ff"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+        <div class="title">Flappy Dream</div>
+        <div class="subtitle">✨ Fly through the magical garden ✨</div>
+        <button id="play">PLAY</button>
+    </div>
+
+    <div id="gameOverScreen" class="screen hidden">
+        <div class="logoContainer">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Pretty Crowned Crystal Heart (No Bubble) -->
+                <path d="M50 82 C20 62, 10 40, 24 24 C38 8, 50 25, 50 25 C50 25, 62 8, 76 24 C90 40, 80 62, 50 82 Z" fill="url(#heartGrad)"/>
+                <!-- Highlight -->
+                <path d="M28 28 C20 38, 22 52, 32 62" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+                <!-- Crown on Top -->
+                <path d="M36 22 L42 8 L50 18 L58 8 L64 22 Z" fill="#ffd95a"/>
+                <circle cx="50" cy="15" r="2.5" fill="#ff4da6"/>
+                <!-- Floating Sparkles -->
+                <path d="M15 28 L17 22 L19 28 L25 30 L19 32 L17 38 L15 32 L9 30 Z" fill="#fff" opacity="0.9"/>
+                <path d="M80 55 L81 50 L82 55 L87 56 L82 57 L81 62 L80 57 L75 56 Z" fill="#ffd95a" opacity="0.9"/>
+                <defs>
+                    <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ff8be6"/>
+                        <stop offset="50%" stop-color="#ff4da6"/>
+                        <stop offset="100%" stop-color="#8a3cff"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+        <div class="gameOverTitle">GAME OVER</div>
+        <div class="scoreText">Score: <span id="finalScore">0</span></div>
+        <div class="bestText">🏆 Best: <span id="bestScore">0</span></div>
+        <button id="again">TRY AGAIN</button>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const startScreen = document.getElementById("startScreen");
+const gameOverScreen = document.getElementById("gameOverScreen");
+const playButton = document.getElementById("play");
+const againButton = document.getElementById("again");
+const scoreDisplay = document.getElementById("score");
+const themeBanner = document.getElementById("themeBanner");
+const finalScore = document.getElementById("finalScore");
+const bestScoreDisplay = document.getElementById("bestScore");
+
+let W = 0;
+let H = 0;
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    W = canvas.width;
+    H = canvas.height;
+}
+window.addEventListener("resize", resize);
+resize();
+
+/* =========================================================
+   INFINITE PROCEDURAL WORLD ENGINE (100+ UNIQUE REALM TYPES)
+========================================================= */
+
+const REALM_PREFIXES = [
+    "Enchanted", "Cyber", "Celestial", "Crystal", "Mystic", "Golden",
+    "Neon", "Aether", "Volcanic", "Aurora", "Emerald", "Obsidian",
+    "Candy", "Undersea", "Solar", "Lunar", "Starlight", "Fantasy"
+];
+
+const REALM_TYPES = [
+    "Cherry Groves", "Synth Skyline", "Floating Castles", "Mushroom Forest",
+    "Prism Spires", "Ancient Pyramids", "Nebula Station", "Coral Reef",
+    "Gummy Kingdom", "Pagoda Valley", "Magma Caverns", "Ice Glaciers",
+    "Windmill Haven", "Bioluminescent Abyss", "Sky Islands", "Starry Ruins"
+];
+
+function pseudoRandom(seed) {
+    let x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+}
+
+function getThemeForLevel(level) {
+    let seed = (level + 1) * 157.31;
+    
+    let pIdx = Math.floor(pseudoRandom(seed + 1) * REALM_PREFIXES.length);
+    let tIdx = Math.floor(pseudoRandom(seed + 2) * REALM_TYPES.length);
+    let name = `${REALM_PREFIXES[pIdx]} ${REALM_TYPES[tIdx]}`;
+
+    const landscapeStyle = Math.floor(pseudoRandom(seed + 3) * 12);
+    const celestialType = Math.floor(pseudoRandom(seed + 4) * 6);
+    const cloudStyle = Math.floor(pseudoRandom(seed + 5) * 6);
+
+    let baseHue = (level * 67 + Math.floor(pseudoRandom(seed + 6) * 40)) % 360;
+    let secHue = (baseHue + 40 + Math.floor(pseudoRandom(seed + 7) * 50)) % 360;
+    let triHue = (baseHue + 120 + Math.floor(pseudoRandom(seed + 8) * 60)) % 360;
+
+    let isNight = (landscapeStyle === 1 || landscapeStyle === 3 || landscapeStyle === 6 || landscapeStyle === 10 || pseudoRandom(seed + 9) > 0.6);
+    let lightnessBase = isNight ? 12 : 35;
+
+    return {
+        name: name,
+        sky: [
+            `hsl(${baseHue}, 75%, ${lightnessBase}%)`,
+            `hsl(${baseHue}, 80%, ${lightnessBase + 15}%)`,
+            `hsl(${secHue}, 85%, ${lightnessBase + 30}%)`,
+            `hsl(${secHue}, 90%, ${lightnessBase + 42}%)`,
+            `hsl(${triHue}, 95%, ${lightnessBase + 55}%)`
+        ],
+        celestialColor: `hsl(${(triHue + 60) % 360}, 100%, 90%)`,
+        landscapeBack: `hsl(${baseHue}, 50%, ${lightnessBase + 12}%)`,
+        landscapeFront: `hsl(${secHue}, 55%, ${lightnessBase + 20}%)`,
+        ground: `hsl(${triHue}, 60%, ${lightnessBase + 18}%)`,
+        groundBorder: `hsl(${(triHue + 120) % 360}, 90%, 75%)`,
+        landscapeStyle: landscapeStyle,
+        cloudStyle: cloudStyle,
+        celestialType: celestialType,
+        isNight: isNight,
+        seed: seed
+    };
+}
+
+/* =========================
+   AUDIO SYSTEM
+========================= */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+    if(!audioCtx) audioCtx = new AudioCtx();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playSound(type) {
+    if(!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+
+    if(type === 'flap') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(380, now);
+        osc.frequency.exponentialRampToValueAtTime(750, now + 0.1);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+    } else if(type === 'score') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.08);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
+    } else if(type === 'theme') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(554.37, now + 0.12);
+        osc.frequency.setValueAtTime(659.25, now + 0.24);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+        osc.start(now);
+        osc.stop(now + 0.45);
+    } else if(type === 'hit') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.linearRampToValueAtTime(40, now + 0.2);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.2);
+    }
+}
+
+/* =========================
+   GAME STATE & VARIABLES
+========================= */
+let playing = false;
+let dead = false;
+let score = 0;
+let best = Number(localStorage.getItem("prettyFlappyBest100")) || 0;
+
+let pipeTimer = 0;
+let groundOffset = 0;
+let shakeTimer = 0;
+let bannerTimeout = null;
+
+const bird = {
+    x: 100,
+    y: H / 2,
+    w: 43,
+    h: 34,
+    velocity: 0,
+    gravity: 0.42,
+    flap: -7.8,
+    rotation: 0
+};
+
+let pipes = [];
+let sparkles = [];
+
+const PIPE_WIDTH = 74;
+const GAP = 175;
+const SPEED = 3;
+
+function getCurrentTheme() {
+    const level = Math.floor(score / 10);
+    return getThemeForLevel(level);
+}
+
+function showThemeBanner(name) {
+    themeBanner.textContent = "✨ " + name + " ✨";
+    themeBanner.classList.add("show");
+    if(bannerTimeout) clearTimeout(bannerTimeout);
+    bannerTimeout = setTimeout(() => {
+        themeBanner.classList.remove("show");
+    }, 2800);
+}
+
+/* =========================================================
+   RENDERING ENGINE
+========================================================= */
+
+function background() {
+    const theme = getCurrentTheme();
+
+    let sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, theme.sky[0]);
+    sky.addColorStop(.25, theme.sky[1]);
+    sky.addColorStop(.55, theme.sky[2]);
+    sky.addColorStop(.8, theme.sky[3]);
+    sky.addColorStop(1, theme.sky[4]);
+
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+
+    drawCelestial(theme);
+    drawClouds(theme);
+    drawLandscapes(theme);
+
+    ctx.fillStyle = theme.ground;
+    ctx.fillRect(0, H - 80, W, 80);
+
+    ctx.fillStyle = theme.groundBorder;
+    ctx.fillRect(0, H - 80, W, 8);
+
+    let flowerSpacing = 48;
+    let startX = (groundOffset % flowerSpacing);
+    let time = Date.now() * 0.0018;
+
+    for(let x = startX - flowerSpacing; x < W + flowerSpacing; x += flowerSpacing) {
+        let worldX = x - groundOffset;
+        let gentleSway = Math.sin(time + (worldX * 0.015)) * 2;
+        flower(x, (H - 58) + gentleSway, worldX);
+    }
+
+    ctx.fillStyle = theme.isNight ? "rgba(255,255,255,.65)" : "rgba(255,255,255,.3)";
+    for(let i = 0; i < 35; i++) {
+        let x = (i * 137 + 50) % W;
+        let y = (i * 59 + 30) % (H - 140);
+        let size = (i % 3 === 0) ? 2 : 1.2;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawCelestial(theme) {
+    ctx.save();
+    let cx = W - 130;
+    let cy = 110;
+
+    if(theme.celestialType === 0) {
+        let sun = ctx.createRadialGradient(cx, cy, 5, cx, cy, 65);
+        sun.addColorStop(0, theme.celestialColor);
+        sun.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = sun;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 65, 0, Math.PI * 2);
+        ctx.fill();
+    } else if(theme.celestialType === 1) {
+        ctx.fillStyle = theme.celestialColor;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = theme.sky[1];
+        ctx.beginPath();
+        ctx.arc(cx + 18, cy - 10, 40, 0, Math.PI * 2);
+        ctx.fill();
+    } else if(theme.celestialType === 2) {
+        ctx.fillStyle = theme.celestialColor;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 38, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.75)";
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 68, 16, -0.3, 0, Math.PI * 2);
+        ctx.stroke();
+    } else if(theme.celestialType === 3) {
+        ctx.fillStyle = theme.celestialColor;
+        ctx.beginPath();
+        ctx.arc(cx - 30, cy + 10, 28, 0, Math.PI * 2);
+        ctx.arc(cx + 25, cy - 15, 38, 0, Math.PI * 2);
+        ctx.fill();
+    } else if(theme.celestialType === 4) {
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 44, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#0d0b1a";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 40, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        for(let r = 60; r > 10; r -= 12) {
+            ctx.fillStyle = `rgba(255,255,255,${0.12 + (60 - r)/220})`;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    ctx.restore();
+}
+
+function drawClouds(theme) {
+    let cloudOffset = (groundOffset * 0.15);
+
+    if(theme.cloudStyle === 0) {
+        cloudFluffy((100 + cloudOffset) % (W + 250) - 100, 130, 1);
+        cloudFluffy((W - 160 + cloudOffset) % (W + 250) - 100, 190, .85);
+        cloudFluffy((W / 2 + cloudOffset) % (W + 250) - 100, 80, .6);
+    } else if(theme.cloudStyle === 1) {
+        cloudStreak((50 + cloudOffset) % (W + 250) - 100, 120, 180, 20);
+        cloudStreak((W - 220 + cloudOffset) % (W + 250) - 100, 160, 220, 15);
+    } else if(theme.cloudStyle === 2) {
+        cloudBubble((90 + cloudOffset) % (W + 200) - 100, 140, 30);
+        cloudBubble((W - 140 + cloudOffset) % (W + 200) - 100, 120, 45);
+    } else if(theme.cloudStyle === 3) {
+        cloudRing((120 + cloudOffset) % (W + 200) - 100, 110, 50);
+        cloudRing((W - 180 + cloudOffset) % (W + 200) - 100, 150, 70);
+    } else if(theme.cloudStyle === 4) {
+        ctx.fillStyle = "rgba(100,255,210,0.18)";
+        ctx.beginPath();
+        ctx.moveTo(0, 80);
+        ctx.quadraticCurveTo(W * 0.3, 140, W * 0.6, 90);
+        ctx.quadraticCurveTo(W * 0.85, 40, W, 110);
+        ctx.lineTo(W, 0);
+        ctx.lineTo(0, 0);
+        ctx.fill();
+    } else {
+        cloudStreak((80 + cloudOffset) % (W + 250) - 100, 90, 240, 12);
+        cloudStreak((W - 200 + cloudOffset) % (W + 250) - 100, 140, 160, 10);
+    }
+}
+
+function cloudFluffy(x, y, s) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(s, s);
+    ctx.fillStyle = "rgba(255,255,255,.55)";
+    ctx.beginPath();
+    ctx.arc(0, 20, 22, 0, Math.PI * 2);
+    ctx.arc(28, 8, 30, 0, Math.PI * 2);
+    ctx.arc(60, 20, 22, 0, Math.PI * 2);
+    ctx.fillRect(0, 20, 60, 25);
+    ctx.fill();
+    ctx.restore();
+}
+
+function cloudStreak(x, y, w, h) {
+    ctx.fillStyle = "rgba(255,255,255,.4)";
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, h/2);
+    ctx.fill();
+}
+
+function cloudBubble(x, y, r) {
+    ctx.strokeStyle = "rgba(255,255,255,.45)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.12)";
+    ctx.fill();
+}
+
+function cloudRing(x, y, r) {
+    ctx.strokeStyle = "rgba(255,255,255,.3)";
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+}
+
+function drawLandscapes(theme) {
+    let style = theme.landscapeStyle;
+    ctx.fillStyle = theme.landscapeBack;
+
+    if(style === 0) { 
+        ctx.beginPath();
+        ctx.moveTo(0, H - 170);
+        ctx.quadraticCurveTo(W * 0.25, H - 270, W * 0.5, H - 180);
+        ctx.quadraticCurveTo(W * 0.75, H - 290, W, H - 180);
+        ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+
+        ctx.fillStyle = theme.landscapeFront;
+        for(let x = 40; x < W + 100; x += 160) {
+            ctx.beginPath();
+            ctx.arc(x, H - 170, 28, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(x - 4, H - 170, 8, 30);
+        }
+    } 
+    else if(style === 1) { 
+        let step = 70;
+        for(let x = 0; x < W + step; x += step) {
+            let h = 140 + ((x * 37) % 180);
+            ctx.fillRect(x, H - 80 - h, step - 10, h);
+            ctx.fillStyle = "rgba(255,255,255,0.2)";
+            for(let wy = H - 70 - h; wy < H - 100; wy += 24) {
+                ctx.fillRect(x + 10, wy, 12, 10);
+            }
+            ctx.fillStyle = theme.landscapeBack;
+        }
+    } 
+    else if(style === 2) { 
+        drawFloatingIsland(W * 0.2, H - 270, 160, 50, theme.landscapeBack);
+        drawFloatingIsland(W * 0.65, H - 320, 200, 60, theme.landscapeBack);
+        drawFloatingIsland(W * 0.88, H - 240, 120, 40, theme.landscapeBack);
+    } 
+    else if(style === 3) { 
+        for(let x = 60; x < W + 100; x += 180) {
+            ctx.fillStyle = theme.landscapeBack;
+            ctx.fillRect(x - 12, H - 240, 24, 160);
+            ctx.fillStyle = theme.landscapeFront;
+            ctx.beginPath();
+            ctx.ellipse(x, H - 240, 65, 35, 0, Math.PI, 0);
+            ctx.fill();
+        }
+    } 
+    else if(style === 4) { 
+        for(let x = -30; x < W + 80; x += 120) {
+            ctx.beginPath();
+            ctx.moveTo(x, H - 80);
+            ctx.lineTo(x + 40, H - 290);
+            ctx.lineTo(x + 80, H - 80);
+            ctx.closePath();
+            ctx.fill();
+        }
+    } 
+    else if(style === 5) { 
+        ctx.beginPath();
+        ctx.moveTo(W * 0.05, H - 80);
+        ctx.lineTo(W * 0.3, H - 280);
+        ctx.lineTo(W * 0.55, H - 80);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(W * 0.45, H - 80);
+        ctx.lineTo(W * 0.75, H - 320);
+        ctx.lineTo(W * 1.05, H - 80);
+        ctx.fill();
+    } 
+    else if(style === 6) { 
+        for(let x = 30; x < W + 100; x += 140) {
+            ctx.beginPath();
+            ctx.arc(x, H - 80, 75, Math.PI, 0);
+            ctx.lineWidth = 22;
+            ctx.strokeStyle = theme.landscapeBack;
+            ctx.stroke();
+        }
+    } 
+    else if(style === 7) { 
+        for(let x = 0; x < W + 100; x += 130) {
+            ctx.beginPath();
+            ctx.arc(x, H - 80, 80, Math.PI, 0);
+            ctx.fill();
+            ctx.fillStyle = theme.landscapeFront;
+            ctx.beginPath();
+            ctx.arc(x + 50, H - 210, 25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(x + 47, H - 210, 6, 130);
+            ctx.fillStyle = theme.landscapeBack;
+        }
+    } 
+    else if(style === 8) { 
+        for(let x = 100; x < W + 200; x += 320) {
+            ctx.fillRect(x - 8, H - 260, 16, 180);
+            ctx.fillRect(x - 50, H - 220, 100, 14);
+            ctx.fillRect(x - 65, H - 260, 130, 16);
+            ctx.fillRect(x - 40, H - 290, 80, 12);
+        }
+    } 
+    else if(style === 9) { 
+        ctx.beginPath();
+        ctx.moveTo(0, H - 80);
+        for(let x = 0; x <= W + 50; x += 90) {
+            let py = ((x / 90) % 2 === 0) ? H - 310 : H - 160;
+            ctx.lineTo(x, py);
+        }
+        ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+    } 
+    else if(style === 10) { 
+        ctx.beginPath();
+        ctx.moveTo(-20, H - 80);
+        ctx.lineTo(W * 0.2, H - 270);
+        ctx.lineTo(W * 0.35, H - 160);
+        ctx.lineTo(W * 0.6, H - 330);
+        ctx.lineTo(W * 0.85, H - 190);
+        ctx.lineTo(W + 20, H - 280);
+        ctx.lineTo(W + 20, H); ctx.lineTo(-20, H); ctx.fill();
+    } 
+    else { 
+        ctx.beginPath();
+        ctx.moveTo(0, H - 150);
+        ctx.quadraticCurveTo(W * 0.3, H - 240, W * 0.6, H - 160);
+        ctx.quadraticCurveTo(W * 0.85, H - 270, W, H - 170);
+        ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+
+        let wx = W * 0.3;
+        ctx.fillRect(wx - 6, H - 240, 12, 90);
+        ctx.strokeStyle = theme.landscapeBack;
+        ctx.lineWidth = 4;
+        let angle = Date.now() * 0.0015;
+        ctx.beginPath();
+        ctx.moveTo(wx + Math.cos(angle)*35, H - 240 + Math.sin(angle)*35);
+        ctx.lineTo(wx - Math.cos(angle)*35, H - 240 - Math.sin(angle)*35);
+        ctx.moveTo(wx + Math.sin(angle)*35, H - 240 - Math.cos(angle)*35);
+        ctx.lineTo(wx - Math.sin(angle)*35, H - 240 + Math.cos(angle)*35);
+        ctx.stroke();
+    }
+
+    ctx.fillStyle = theme.landscapeFront;
+    ctx.beginPath();
+    ctx.moveTo(0, H - 140);
+    ctx.quadraticCurveTo(W * 0.25, H - 210, W * 0.5, H - 140);
+    ctx.quadraticCurveTo(W * 0.75, H - 220, W, H - 150);
+    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+}
+
+function drawFloatingIsland(x, y, w, h, color) {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(x, y, w/2, h/2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.moveTo(x - w/4, y);
+    ctx.lineTo(x, y + h * 1.6);
+    ctx.lineTo(x + w/4, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
+
+function flower(x, y, worldX) {
+    ctx.strokeStyle = "#3b946b";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 16);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+
+    let hue = (worldX * 0.5 + Date.now() * 0.02) % 360;
+    ctx.fillStyle = `hsl(${hue}, 85%, 75%)`;
+
+    for(let i = 0; i < 5; i++) {
+        let a = i * Math.PI * 2 / 5;
+        ctx.beginPath();
+        ctx.arc(x + Math.cos(a) * 5, y + Math.sin(a) * 5, 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.fillStyle = "#ffd166";
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+/* =========================
+   BIRD GRAPHICS
+========================= */
+function drawBird(){
+    ctx.save();
+    ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
+    ctx.rotate(bird.rotation);
+
+    ctx.shadowColor="#ff8fd8";
+    ctx.shadowBlur=15;
+
+    let body = ctx.createLinearGradient(-20,-15,20,15);
+    body.addColorStop(0,"#ffd6f6");
+    body.addColorStop(.5,"#ff9fdc");
+    body.addColorStop(1,"#c58cff");
+
+    ctx.fillStyle=body;
+    ctx.beginPath();
+    ctx.ellipse(0,0,22,16,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur=0;
+
+    ctx.fillStyle="#d99cff";
+    ctx.beginPath();
+    ctx.ellipse(-7,7,13,7,-.45,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle="#b873e6";
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.arc(-8,7,7,.2,Math.PI);
+    ctx.stroke();
+
+    ctx.fillStyle="#fff";
+    ctx.beginPath();
+    ctx.arc(12,-7,7,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="#3b1f48";
+    ctx.beginPath();
+    ctx.arc(14,-7,3,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="#ffcf70";
+    ctx.beginPath();
+    ctx.moveTo(20,-1);
+    ctx.lineTo(34,5);
+    ctx.lineTo(20,9);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle="#ffd95a";
+    ctx.beginPath();
+    ctx.moveTo(-5,-15);
+    ctx.lineTo(0,-25);
+    ctx.lineTo(5,-17);
+    ctx.lineTo(11,-24);
+    ctx.lineTo(14,-12);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle="#ff79bd";
+    ctx.beginPath();
+    ctx.arc(6,-17,2,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.restore();
+}
+
+/* =========================
+   PIPES & PARTICLES
+========================= */
+function pipe(x,top,bottom){
+    magicalPipe(x, 0, top, true);
+    magicalPipe(x, bottom, H-bottom, false);
+}
+
+function magicalPipe(x,y,height,isTop){
+    ctx.fillStyle="rgba(40,20,60,.15)";
+    ctx.fillRect(x+5, y+5, PIPE_WIDTH, height);
+
+    let gradient = ctx.createLinearGradient(x,0,x+PIPE_WIDTH,0);
+    gradient.addColorStop(0,"#73e0d2");
+    gradient.addColorStop(.45,"#b8f5e8");
+    gradient.addColorStop(1,"#62c7d5");
+
+    ctx.fillStyle=gradient;
+    ctx.fillRect(x, y, PIPE_WIDTH, height);
+
+    ctx.strokeStyle="#6747a0";
+    ctx.lineWidth=4;
+    ctx.strokeRect(x, y, PIPE_WIDTH, height);
+
+    let capY = isTop ? height-27 : y;
+
+    ctx.fillStyle="#c6a5ff";
+    ctx.fillRect(x-6, capY, PIPE_WIDTH+12, 27);
+
+    ctx.strokeStyle="#6747a0";
+    ctx.strokeRect(x-6, capY, PIPE_WIDTH+12, 27);
+
+    ctx.fillStyle="rgba(255,255,255,.35)";
+    ctx.fillRect(x+10, y, 8, height);
+
+    ctx.strokeStyle="#5b9f75";
+    ctx.lineWidth=3;
+    ctx.beginPath();
+
+    if(isTop){
+        ctx.moveTo(x+48,capY);
+        ctx.quadraticCurveTo(x+35, capY-20, x+55, capY-38);
+    }else{
+        ctx.moveTo(x+18,capY+27);
+        ctx.quadraticCurveTo(x+32, capY+45, x+15, capY+62);
+    }
+    ctx.stroke();
+
+    let fy = isTop ? capY-35 : capY+55;
+    flowerMini(x + 52, fy);
+}
+
+function flowerMini(x,y){
+    let hue = (Date.now() / 12 + x * 2 + y * 2) % 360;
+    ctx.fillStyle = `hsl(${hue}, 90%, 80%)`;
+
+    for(let i=0;i<5;i++){
+        let a=i*Math.PI*2/5;
+        ctx.beginPath();
+        ctx.arc(x+Math.cos(a)*5, y+Math.sin(a)*5, 4, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    ctx.fillStyle="#ffd166";
+    ctx.beginPath();
+    ctx.arc(x,y,2.5,0,Math.PI*2);
+    ctx.fill();
+}
+
+function sparkle(x,y){
+    sparkles.push({
+        x:x,
+        y:y,
+        size:Math.random()*4+2,
+        speedX:(Math.random()-.5)*2,
+        speedY:(Math.random()-.5)*2,
+        life:1
+    });
+}
+
+function updateSparkles(){
+    sparkles.forEach(s=>{
+        s.x+=s.speedX;
+        s.y+=s.speedY;
+        s.life-=.025;
+    });
+    sparkles = sparkles.filter(s=>s.life>0);
+}
+
+function drawSparkles(){
+    sparkles.forEach(s=>{
+        ctx.globalAlpha=s.life;
+        ctx.fillStyle="#fff";
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+        ctx.fill();
+    });
+    ctx.globalAlpha=1;
+}
+
+function createPipe(){
+    let maxPipeTop = H - GAP - 160;
+    let minPipeTop = 60;
+    let top = Math.random() * (maxPipeTop - minPipeTop) + minPipeTop;
+
+    pipes.push({
+        x: W,
+        top: top,
+        bottom: top + GAP,
+        scored: false
+    });
+}
+
+function collision(p){
+    let left = bird.x + 7;
+    let right = bird.x + bird.w - 7;
+    let top = bird.y + 5;
+    let bottom = bird.y + bird.h - 5;
+
+    let hitPipe = right > p.x && left < p.x + PIPE_WIDTH && (top < p.top || bottom > p.bottom);
+    let ground = bottom >= H - 80;
+    let ceiling = top <= 0;
+
+    return hitPipe || ground || ceiling;
+}
+
+function flap(){
+    initAudio();
+    if(!playing) return;
+
+    bird.velocity = bird.flap;
+    playSound('flap');
+
+    for(let i=0;i<5;i++){
+        sparkle(bird.x, bird.y+bird.h/2);
+    }
+}
+
+function startGame(){
+    initAudio();
+    playing = true;
+    dead = false;
+    score = 0;
+    pipeTimer = 0;
+
+    bird.x = Math.max(80, W * 0.15);
+    bird.y = H / 2;
+    bird.velocity = 0;
+    bird.rotation = 0;
+
+    pipes = [];
+    sparkles = [];
+    scoreDisplay.textContent = "0";
+
+    startScreen.classList.add("hidden");
+    gameOverScreen.classList.add("hidden");
+
+    showThemeBanner(getCurrentTheme().name);
+    createPipe();
+}
+
+function gameOver(){
+    if(dead) return;
+    dead = true;
+    playing = false;
+    shakeTimer = 12;
+
+    playSound('hit');
+
+    if(score > best){
+        best = score;
+        localStorage.setItem("prettyFlappyBest100", best);
+    }
+
+    finalScore.textContent = score;
+    bestScoreDisplay.textContent = best;
+    gameOverScreen.classList.remove("hidden");
+}
+
+/* =========================
+   GAME LOOP
+========================= */
+let lastTime = performance.now();
+
+function update(dt){
+    if(!playing) return;
+
+    groundOffset -= SPEED * dt;
+
+    bird.velocity += bird.gravity * dt;
+    bird.y += bird.velocity * dt;
+
+    bird.rotation = Math.min(Math.max(bird.velocity * 0.07, -0.5), 1.15);
+
+    pipeTimer += dt;
+    if(pipeTimer >= 110) {
+        pipeTimer = 0;
+        createPipe();
+    }
+
+    pipes.forEach(p => {
+        p.x -= SPEED * dt;
+
+        if(!p.scored && p.x + PIPE_WIDTH < bird.x){
+            p.scored = true;
+            score++;
+            scoreDisplay.textContent = score;
+
+            if(score % 10 === 0) {
+                const newTheme = getCurrentTheme();
+                showThemeBanner(newTheme.name);
+                playSound('theme');
+                for(let i=0;i<35;i++){
+                    sparkle(W/2 + (Math.random()-.5)*220, H/2 + (Math.random()-.5)*220);
+                }
+            } else {
+                playSound('score');
+            }
+
+            for(let i=0;i<15;i++){
+                sparkle(bird.x+20, bird.y+15);
+            }
+        }
+
+        if(collision(p)){
+            gameOver();
+        }
+    });
+
+    pipes = pipes.filter(p => p.x + PIPE_WIDTH > -30);
+
+    if(Math.random() < 0.15 * dt){
+        sparkle(bird.x-8, bird.y+bird.h/2);
+    }
+
+    updateSparkles();
+}
+
+function draw(){
+    ctx.save();
+
+    if(shakeTimer > 0) {
+        shakeTimer--;
+        let dx = (Math.random() - 0.5) * 10;
+        let dy = (Math.random() - 0.5) * 10;
+        ctx.translate(dx, dy);
+    }
+
+    ctx.clearRect(0, 0, W, H);
+    background();
+
+    pipes.forEach(p => {
+        pipe(p.x, p.top, p.bottom);
+    });
+
+    drawSparkles();
+    drawBird();
+
+    ctx.restore();
+}
+
+function loop(now){
+    let dt = (now - lastTime) / (1000 / 60);
+    if(dt > 3) dt = 1;
+    lastTime = now;
+
+    update(dt);
+    draw();
+
+    requestAnimationFrame(loop);
+}
+
+/* =========================
+   CONTROLS
+========================= */
+document.addEventListener("keydown", e => {
+    if(e.code !== "Space") return;
+    e.preventDefault();
+
+    if(playing && !dead){
+        flap();
+    } else if (!playing && dead) {
+        startGame();
+    }
+});
+
+canvas.addEventListener("mousedown", () => {
+    if(playing) flap();
+});
+
+canvas.addEventListener("touchstart", e => {
+    e.preventDefault();
+    if(playing) flap();
+}, {passive: false});
+
+playButton.onclick = () => startGame();
+againButton.onclick = () => startGame();
+
+bestScoreDisplay.textContent = best;
+draw();
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>
